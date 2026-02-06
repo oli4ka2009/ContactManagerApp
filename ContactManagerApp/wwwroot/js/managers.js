@@ -3,7 +3,10 @@
         tableId: 'managersTable',
         endpoints: { edit: '', delete: '' },
         currentEditCell: null,
-        filterTimeout: null
+        filterTimeout: null,
+        deleteModal: null,
+        pendingDeleteId: null,
+        pendingDeleteRow: null
     },
 
     formatters: {
@@ -14,7 +17,7 @@
     },
 
     parsers: {
-        isMarried: (input) => input.checked,
+        isMarried: (input) => input.value === 'true',
         salary: (input) => {
             const val = input.value.replace(/\s/g, '').replace(',', '.');
             if (val === '') return null;
@@ -27,15 +30,26 @@
     init(endpoints) {
         this.config.endpoints = endpoints;
         const table = document.getElementById(this.config.tableId);
+
+        const modalEl = document.getElementById('deleteModal');
+        if (modalEl && window.bootstrap) {
+            this.config.deleteModal = new bootstrap.Modal(modalEl);
+
+            document.getElementById('confirmDeleteBtn')?.addEventListener('click', () => {
+                this.executeDelete();
+            });
+        }
+
         if (!table) return;
 
         table.addEventListener('click', (e) => {
             const target = e.target;
             const th = target.closest('th');
             const editable = target.closest('.editable');
+            const deleteBtn = target.closest('.delete-btn');
 
-            if (target.closest('.delete-btn')) {
-                this.delete(target.closest('.delete-btn'));
+            if (deleteBtn) {
+                this.showDeleteModal(deleteBtn);
             } else if (th?.dataset.sortable === 'true') {
                 this.sort(th.cellIndex, th);
             } else if (editable && !target.closest('.edit-input')) {
@@ -97,8 +111,15 @@
     },
 
     startEdit(cell) {
+        const existingInput = cell.querySelector('.edit-input');
+        if (existingInput) {
+            existingInput.focus();
+            if (cell.dataset.field !== 'isMarried') existingInput.select?.();
+            return;
+        }
+
         if (this.config.currentEditCell && this.config.currentEditCell !== cell) {
-            this.config.currentEditCell.querySelector('.edit-input')?.blur();
+            this.finishEdit(this.config.currentEditCell);
         }
 
         const { field, value } = cell.dataset;
@@ -106,35 +127,52 @@
 
         const input = this.createInputElement(field, value);
         cell.appendChild(input);
-        input.focus();
-        if (field !== 'isMarried') input.select?.();
+
+        setTimeout(() => {
+            input.focus();
+            if (input.tagName === 'INPUT' && input.type !== 'date') {
+                input.select();
+            }
+        }, 0);
 
         this.config.currentEditCell = cell;
     },
 
     createInputElement(field, value) {
-        const input = document.createElement('input');
-        input.classList.add('form-control', 'form-control-sm', 'edit-input');
+        let input;
 
-        switch (field) {
-            case 'isMarried':
-                input.type = 'checkbox';
-                input.className = 'form-check-input edit-input';
-                input.checked = value === 'true';
-                input.addEventListener('change', () => input.blur());
-                break;
-            case 'dateOfBirth':
-                input.type = 'date';
-                input.value = value;
-                break;
-            case 'salary':
-                input.type = 'text';
-                input.value = value ? parseFloat(value).toFixed(2).replace('.', ',') : '';
-                input.addEventListener('input', () => input.value = input.value.replace(/[^0-9.,]/g, ''));
-                break;
-            default:
-                input.type = 'text';
-                input.value = value;
+        if (field === 'isMarried') {
+            input = document.createElement('select');
+            input.classList.add('form-select', 'form-select-sm', 'edit-input');
+
+            const optYes = new Option('Yes', 'true');
+            const optNo = new Option('No', 'false');
+
+            input.add(optYes);
+            input.add(optNo);
+
+            input.value = value === 'true' ? 'true' : 'false';
+
+            input.addEventListener('change', () => input.blur());
+        }
+        else {
+            input = document.createElement('input');
+            input.classList.add('form-control', 'form-control-sm', 'edit-input');
+
+            switch (field) {
+                case 'dateOfBirth':
+                    input.type = 'date';
+                    input.value = value;
+                    break;
+                case 'salary':
+                    input.type = 'text';
+                    input.value = value ? parseFloat(value).toFixed(2).replace('.', ',') : '';
+                    input.addEventListener('input', () => input.value = input.value.replace(/[^0-9.,]/g, ''));
+                    break;
+                default:
+                    input.type = 'text';
+                    input.value = value;
+            }
         }
 
         input.addEventListener('keydown', (e) => {
@@ -152,6 +190,7 @@
     },
 
     async finishEdit(cell) {
+        if (!cell) return;
         const input = cell.querySelector('.edit-input');
         if (!input) return;
 
@@ -203,7 +242,10 @@
 
         display.style.display = '';
         this.clearErrors(cell);
-        this.config.currentEditCell = null;
+
+        if (this.config.currentEditCell === cell) {
+            this.config.currentEditCell = null;
+        }
     },
 
     collectData(row) {
@@ -244,22 +286,52 @@
         const field = cell.dataset.field;
         let val = cell.dataset.value;
         if (field === 'salary' && val !== '') val = parseFloat(val);
-        if (field === 'isMarried') val = val === 'true';
-
         this.cleanupCell(cell, val);
     },
 
-    async delete(btn) {
-        if (!confirm('Delete?')) return;
+    showDeleteModal(btn) {
         const row = btn.closest('tr');
+        const id = parseInt(row.dataset.id);
+
+        const nameCell = row.querySelector('[data-field="name"]');
+        const name = nameCell ? nameCell.dataset.value : 'this item';
+
+        this.config.pendingDeleteId = id;
+        this.config.pendingDeleteRow = row;
+
+        document.getElementById('deleteTargetName').textContent = name;
+        this.config.deleteModal?.show();
+    },
+
+    async executeDelete() {
+        if (!this.config.pendingDeleteId) return;
+
+        const id = this.config.pendingDeleteId;
+        const btn = document.getElementById('confirmDeleteBtn');
+
         try {
+            btn.disabled = true;
+            btn.textContent = "Deleting...";
+
             const res = await fetch(this.config.endpoints.delete, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(parseInt(row.dataset.id))
+                body: JSON.stringify(id)
             });
-            if (res.ok) row.remove();
-            else alert('Error');
-        } catch (e) { alert('Network error'); }
+
+            if (res.ok) {
+                this.config.pendingDeleteRow.remove();
+                this.config.deleteModal.hide();
+            } else {
+                alert('Error deleting record on server');
+            }
+        } catch (e) {
+            alert('Network error occurred');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Yes, Delete it!";
+            this.config.pendingDeleteId = null;
+            this.config.pendingDeleteRow = null;
+        }
     }
 };

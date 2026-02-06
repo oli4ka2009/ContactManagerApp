@@ -97,6 +97,29 @@
         </tbody>
     </table>
 </div>
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-body text-center p-5">
+                <h3 class="mb-3 fw-bold text-dark">Are you sure?</h3>
+
+                <p class="text-muted mb-4">
+                    Do you really want to delete manager <strong id="deleteTargetName" class="text-dark"></strong>?
+                    <br>This process cannot be undone.
+                </p>
+
+                <div class="d-flex justify-content-center gap-3">
+                    <button type="button" class="btn btn-light px-4 py-2 fw-bold" data-bs-dismiss="modal" style="border-radius: 8px;">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger px-4 py-2 fw-bold" id="confirmDeleteBtn" style="border-radius: 8px; background-color: #ef4444; border: none;">
+                        Yes, Delete it!
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <script src="~/js/managers.js" asp-append-version="true"></script>

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using ContactManagerApp.ValidationAttributes;
 
 namespace ContactManagerApp.Models
 {
@@ -13,6 +14,7 @@ namespace ContactManagerApp.Models
         public string Name { get; set; }
 
         [Required]
+        [BirthDate]
         public DateOnly DateOfBirth { get; set; }
 
         [Required]
@@ -25,6 +27,7 @@ namespace ContactManagerApp.Models
 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
+        [Range(0, 10000000, ErrorMessage = "Salary must be positive")]
         public decimal? Salary { get; set; }
     }
 }

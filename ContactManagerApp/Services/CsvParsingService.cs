@@ -3,6 +3,7 @@ using CsvHelper;
 using System.Globalization;
 using ContactManagerApp.Models;
 using ContactManagerApp.Models.Dto;
+using CsvHelper.TypeConversion;
 
 namespace ContactManagerApp.Services
 {
@@ -11,29 +12,45 @@ namespace ContactManagerApp.Services
         public IEnumerable<Manager> ParseManagers(Stream fileStream)
         {
             using var reader = new StreamReader(fileStream);
-            using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
             {
-                TrimOptions = TrimOptions.Trim,
-                HeaderValidated = null,
-                MissingFieldFound = null
-            });
+                TrimOptions = TrimOptions.Trim
+            };
 
-            var records = csv.GetRecords<ManagerDto>();
+            using var csv = new CsvReader(reader, config);
 
-            var managers = new List<Manager>();
-            foreach (var record in records)
+            try
             {
-                managers.Add(new Manager
+                var records = csv.GetRecords<ManagerDto>();
+                var managers = new List<Manager>();
+
+                foreach (var record in records)
                 {
-                    Name = record.Name,
-                    DateOfBirth = record.DateOfBirth,
-                    IsMarried = record.IsMarried,
-                    Phone = record.Phone,
-                    Salary = record.Salary
-                });
-            }
+                    managers.Add(new Manager
+                    {
+                        Name = record.Name,
+                        DateOfBirth = record.DateOfBirth,
+                        IsMarried = record.IsMarried,
+                        Phone = record.Phone,
+                        Salary = record.Salary
+                    });
+                }
 
-            return managers;
+                return managers;
+            }
+            catch (HeaderValidationException ex)
+            {
+                var missingHeaders = string.Join(", ", ex.InvalidHeaders.SelectMany(h => h.Names));
+                throw new Exception($"Invalid CSV structure. Missing columns: {missingHeaders}");
+            }
+            catch (TypeConverterException ex)
+            {
+                throw new Exception($"Data format error at row {ex.Context.Parser.Row}: {ex.Text} cannot be converted.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error parsing CSV: {ex.Message}");
+            }
         }
     }
 }

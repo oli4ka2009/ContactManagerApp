@@ -1,6 +1,7 @@
 ﻿using ContactManagerApp.Models;
 using ContactManagerApp.Repositories;
 using CsvHelper;
+using System.ComponentModel.DataAnnotations;
 
 namespace ContactManagerApp.Services
 {
@@ -17,7 +18,9 @@ namespace ContactManagerApp.Services
 
         public async Task UploadManagersAsync(Stream fileStream)
         {
-            var managers = _parser.ParseManagers(fileStream);
+            var managers = _parser.ParseManagers(fileStream).ToList();
+
+            ValidateManagersList(managers);
 
             if (managers.Any())
             {
@@ -45,6 +48,29 @@ namespace ContactManagerApp.Services
             {
                 _repository.Delete(manager);
                 await _repository.SaveChangesAsync();
+            }
+        }
+        private void ValidateManagersList(List<Manager> managers)
+        {
+            var errors = new List<string>();
+            int rowIndex = 2;
+
+            foreach (var manager in managers)
+            {
+                var validationResults = new List<ValidationResult>();
+                var context = new ValidationContext(manager);
+
+                if (!Validator.TryValidateObject(manager, context, validationResults, validateAllProperties: true))
+                {
+                    var messages = string.Join(", ", validationResults.Select(r => r.ErrorMessage));
+                    errors.Add($"Row {rowIndex} ({manager.Name}): {messages}");
+                }
+                rowIndex++;
+            }
+
+            if (errors.Any())
+            {
+                throw new Exception($"Validation failed:\n{string.Join("\n", errors)}");
             }
         }
     }
