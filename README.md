@@ -34,7 +34,7 @@ The project is built on the .NET stack using modern approaches:
 
 1. **Clone the repository:**
 ```bash
-git clone <your-repo-link>
+git clone https://github.com/oli4ka2009/ContactManagerApp
 cd ContactManagerApp
 
 ```
@@ -94,3 +94,4 @@ Maria Koval,1995-11-15,false,+380971112233,20000.50
 
 * **Repositories:** `ManagerRepository` abstracts database operations via EF Core.
 * **Models:** `Manager` (DB entity) and DTOs for data transfer.
+
