@@ -1,0 +1,50 @@
+﻿.editable {
+    cursor: pointer;
+    position: relative;
+    padding: 0.5rem;
+    transition: background-color 0.2s;
+}
+
+    .editable:hover {
+        background-color: #f8f9fa;
+    }
+
+.filter-row th {
+    padding: 0.5rem;
+    background-color: #343a40;
+}
+
+.filter-row input,
+.filter-row select {
+    background-color: #fff;
+}
+
+.edit-input {
+    width: 100%;
+    border: 1px solid #ced4da !important;
+    border-radius: 0.2rem;
+}
+
+    .edit-input:focus {
+        outline: none;
+        border-color: #86b7fe !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+    }
+
+.editable input[type="checkbox"] {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+}
+
+.form-control-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.invalid-feedback {
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    color: #dc3545;
+}

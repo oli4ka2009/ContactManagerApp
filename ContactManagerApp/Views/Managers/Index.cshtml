@@ -1,0 +1,111 @@
+﻿@model IEnumerable<ContactManagerApp.Models.Manager>
+
+@{
+    ViewData["Title"] = "Contact Managers";
+}
+
+<link rel="stylesheet" href="~/css/managers.css" asp-append-version="true" />
+
+<div class="container mt-4">
+    <h2>Contact Managers</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            @Html.ValidationSummary(false, "", new { @class = "mb-0" })
+        </div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form asp-action="Upload" asp-controller="Managers" method="post" enctype="multipart/form-data" class="row g-3 align-items-center">
+                <div class="col-auto">
+                    <label for="file" class="col-form-label fw-bold">Upload CSV:</label>
+                </div>
+                <div class="col-auto">
+                    <input type="file" name="file" class="form-control" accept=".csv" required />
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <table class="table table-striped table-hover" id="managersTable">
+        <thead class="table-dark">
+            <tr>
+                <th style="cursor:pointer" data-sortable="true">Name ↕</th>
+                <th style="cursor:pointer" data-sortable="true">Date of Birth ↕</th>
+                <th style="cursor:pointer" data-sortable="true">Married ↕</th>
+                <th style="cursor:pointer" data-sortable="true">Phone ↕</th>
+                <th style="cursor:pointer" data-sortable="true">Salary ↕</th>
+                <th>Actions</th>
+            </tr>
+            <tr class="filter-row">
+                <th><input type="text" class="form-control form-control-sm filter-input" data-column="0" placeholder="Filter name..."></th>
+                <th><input type="text" class="form-control form-control-sm filter-input" data-column="1" placeholder="Filter date..."></th>
+                <th>
+                    <select class="form-select form-select-sm filter-input" data-column="2">
+                        <option value="">All</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                    </select>
+                </th>
+                <th><input type="text" class="form-control form-control-sm filter-input" data-column="3" placeholder="Filter phone..."></th>
+                <th><input type="text" class="form-control form-control-sm filter-input" data-column="4" placeholder="Filter salary..."></th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model != null)
+            {
+                foreach (var item in Model)
+                {
+                    <tr data-id="@item.Id">
+                        <td class="editable" data-field="name" data-value="@item.Name">
+                            <span class="display-value">@item.Name</span>
+                        </td>
+
+                        <td class="editable" data-field="dateOfBirth" data-value="@item.DateOfBirth.ToString("yyyy-MM-dd")">
+                            <span class="display-value">@item.DateOfBirth.ToShortDateString()</span>
+                        </td>
+
+                        <td class="editable" data-field="isMarried" data-value="@item.IsMarried.ToString().ToLower()">
+                            <span class="display-value">@(item.IsMarried ? "Yes" : "No")</span>
+                        </td>
+
+                        <td class="editable" data-field="phone" data-value="@item.Phone">
+                            <span class="display-value">@item.Phone</span>
+                        </td>
+
+                        <td class="editable" data-field="salary" data-value="@(item.Salary?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")">
+                            <span class="display-value">@item.Salary</span>
+                        </td>
+
+                        <td>
+                            <button class="btn btn-sm btn-danger delete-btn">Delete</button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script src="~/js/managers.js" asp-append-version="true"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            ContactManager.init({
+                edit: '@Url.Action("Edit", "Managers")',
+                delete: '@Url.Action("Delete", "Managers")'
+            });
+        });
+    </script>
+}
